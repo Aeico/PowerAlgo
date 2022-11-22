@@ -30,19 +30,12 @@ def plot_env(x, charge, exchange, filename, should_show, lines=None):
     x1.tick_params(axis='x', colors="k")
     x1.tick_params(axis='y', colors="C0")
 
-
-    N = len(charge)
-    running_avg = np.empty(N)
-    for t in range(N):
-        running_avg[t] = np.mean(charge[max(0, t-20):(t+1)])
-
     x2.plot(x, charge, color="C1")
     x2.set_ylabel("Charge", color="C1")
     x2.yaxis.set_label_position('right')
     x2.yaxis.tick_right()
     x2.tick_params(axis='x', colors="k")
     x2.tick_params(axis='y', colors="C1")
-
 
     if lines is not None:
         for line in lines:
@@ -65,11 +58,6 @@ def plot_env_score(x, score, filename, should_show, lines=None):
     x1.tick_params(axis='x', colors="C2")
     x1.tick_params(axis='y', colors="C2")
 
-    N = len(score)
-    running_avg = np.empty(N)
-    for t in range(N):
-        running_avg[t] = np.mean(score[max(0, t-20):(t+1)])
-    
     arr_mean_price = []
     temp = []
     for i in range(len(x)):
@@ -205,7 +193,7 @@ class Agent():
 
         #Loading model
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self.Q_eval.load_state_dict(torch.load("SameTest.pth",device))
+        self.Q_eval.load_state_dict(torch.load("Q_Eval_Days4k_Info3h_Step10min.pth.pth",device))
 
         self.state_memory = np.zeros((self.mem_size, *input_dims), dtype=np.float32)
         self.new_state_memory = np.zeros((self.mem_size, *input_dims), dtype=np.float32)
@@ -267,8 +255,8 @@ class Agent():
 
 def deep_q_agent(days, step_period, show):
     env = Home_Enviroment(step_period,data)
-    agent = Agent(gamma=0.99, epsilon=0.05, batch_size=32, n_actions=2, 
-                eps_end=0.001, eps_dec=5e-5, input_dims=[4], lr=0.001)
+    agent = Agent(gamma=0.99, epsilon=0.01, batch_size=32, n_actions=2, 
+                eps_end=0.001, eps_dec=5e-6, input_dims=[4], lr=0.001)
     scores, eps_history = [],[]
     action_count = [0,0,0]
 
@@ -310,21 +298,21 @@ def deep_q_agent(days, step_period, show):
 
     print(action_count)
     
-    #torch.save(agent.Q_eval.state_dict(), "SameTest.pth")
+    #torch.save(agent.Q_eval.state_dict(), "Q_Eval_Days4k_Info3h_Step10min.pth.pth")
 
 #All functions use (Days, Step_Period(60 = 1 min), Show graph)
 if __name__ == "__main__":
     start_time = time.time()
     days = 670
-    step = 60*60
-    #print("\n-----------------------------------------------------------------------------------------------\n")
-    #if_step_sell(days, step, False)
-    #print("\n-----------------------------------------------------------------------------------------------\n")
-    #only_sell(days, step, False)
-    #print("\n-----------------------------------------------------------------------------------------------\n")
-    #only_buy(days, step, False)
-    #print("\n-----------------------------------------------------------------------------------------------\n")
-    #test_rewards(days, step, False)
+    step = 60*10
+    print("\n-----------------------------------------------------------------------------------------------\n")
+    if_step_sell(days, step, False)
+    print("\n-----------------------------------------------------------------------------------------------\n")
+    only_sell(days, step, False)
+    print("\n-----------------------------------------------------------------------------------------------\n")
+    only_buy(days, step, False)
+    print("\n-----------------------------------------------------------------------------------------------\n")
+    test_rewards(days, step, False)
     print("\n-----------------------------------------------------------------------------------------------\n")
     deep_q_agent(days, step, False)
     print("\n-----------------------------------------------------------------------------------------------\n")
