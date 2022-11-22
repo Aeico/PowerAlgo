@@ -1,0 +1,10 @@
+/Tutorials
+Tutorials
+./Tutorials
+/Tutorials/**
+/Tutorials*
+Tutorials/**
+Tutorials/*
+/__pycache__
+testing.ipynb
+testingbackup.ipynb
