@@ -216,9 +216,9 @@ class Home_Enviroment():
         else: #If Bought
             #reward = ((self.avg_price_day/self.bought_at_price)-1) #Ignored price comparde to average price
             reward = (-day_arr[0] + day_arr[1])*2 + (-day_arr[1] + day_arr[2])*1
-        reward = reward*-1
-        reward -= (self.sold_in_day - self.bought_in_day)*0.4
-        reward = reward*-1
+        reward = reward*(self.step_period/3600)
+        reward += (self.sold_in_day - self.bought_in_day)*0.4*(self.step_period/3600)*15
+        
         
 
         #reward = self.total_sold_price - self.total_bought_price

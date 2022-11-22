@@ -10,10 +10,7 @@ Home_Enviroment = homeenv.Home_Enviroment
 
 import json
 import time
-#file = open('2008till2022-10-15.json')
-file = open('2021till2022nov.json')
 
-data = json.load(file)
 
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as pe
@@ -81,7 +78,7 @@ def plot_env_score(x, score, filename, should_show, lines=None):
     if(should_show == True):
         plt.show()
 
-def if_step_sell(days, step_period, show):
+def if_step_sell(days, step_period, show, data):
     #Home Enviroment
 
     env = Home_Enviroment(step_period,data)
@@ -100,7 +97,7 @@ def if_step_sell(days, step_period, show):
 
     plot_env(x,env.charge_at_time,(env.exchange),filename,should_show=show)
 
-def only_sell(days, step_period, show):
+def only_sell(days, step_period, show, data):
     env = Home_Enviroment(step_period,data)
     counts = [0,0,0]
     while env.day_index <= days:#((len(data)/24)):
@@ -112,7 +109,7 @@ def only_sell(days, step_period, show):
 
     plot_env(x,env.charge_at_time,(env.exchange),filename,should_show=show)
 
-def only_buy(days, step_period, show):
+def only_buy(days, step_period, show, data):
     env = Home_Enviroment(step_period,data)
     counts = [0,0,0]
     days = days
@@ -124,7 +121,7 @@ def only_buy(days, step_period, show):
     filename = 'onlystepbuy.png'
     plot_env(x,env.charge_at_time,(env.exchange),filename,should_show=show)
 
-def test_rewards(days, step_period, show):
+def test_rewards(days, step_period, show, data):
     env = Home_Enviroment(step_period,data)
     counts = [0,0,0]
     days = days
@@ -144,8 +141,6 @@ def test_rewards(days, step_period, show):
     plot_env(x,env.charge_at_time,(env.exchange),filename,should_show=show)
 
     
-
-
 class DeepQNetwork(nn.Module):
     def __init__(self, lr, input_dims, fc1_dims, fc2_dims, fc3_dims, n_actions):
         super(DeepQNetwork, self).__init__()
@@ -176,8 +171,8 @@ class DeepQNetwork(nn.Module):
 
 class Agent():
     def __init__(self, gamma, epsilon, lr, input_dims, 
-                batch_size, n_actions, eps_end, eps_dec, 
-                max_mem_size=200000):#Large memory size since 5000+ days is 120000+ hours and we want to have some memory
+                batch_size, n_actions, eps_end, eps_dec,
+                load, load_path, max_mem_size=200000):#Large memory size since 5000+ days is 120000+ hours and we want to have some memory
                 #Even though we cant remember all minutes or seconds
         self.gamma = gamma #discounts reward
         self.epsilon = epsilon #increased learning rate early on
@@ -192,8 +187,9 @@ class Agent():
         self.Q_eval = DeepQNetwork(self.lr, n_actions=n_actions, input_dims=input_dims, fc1_dims=64, fc2_dims=64, fc3_dims=32)
 
         #Loading model
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self.Q_eval.load_state_dict(torch.load("Q_Eval_Days4k_Info3h_Step10min.pth.pth",device))
+        if load:
+            device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+            self.Q_eval.load_state_dict(torch.load(load_path,device))
 
         self.state_memory = np.zeros((self.mem_size, *input_dims), dtype=np.float32)
         self.new_state_memory = np.zeros((self.mem_size, *input_dims), dtype=np.float32)
@@ -253,10 +249,11 @@ class Agent():
         self.epsilon = self.epsilon - self.eps_dec if self.epsilon > self.eps_min \
                                                     else self.eps_min                                
 
-def deep_q_agent(days, step_period, show):
+def deep_q_agent(days, step_period, show, data, save, save_path, load, load_path):
     env = Home_Enviroment(step_period,data)
     agent = Agent(gamma=0.99, epsilon=0.01, batch_size=32, n_actions=2, 
-                eps_end=0.001, eps_dec=5e-6, input_dims=[4], lr=0.001)
+                eps_end=0.001, eps_dec=5e-6, input_dims=[4], lr=0.001,
+                load_path=load_path, load=load)
     scores, eps_history = [],[]
     action_count = [0,0,0]
 
@@ -298,23 +295,35 @@ def deep_q_agent(days, step_period, show):
 
     print(action_count)
     
-    #torch.save(agent.Q_eval.state_dict(), "Q_Eval_Days4k_Info3h_Step10min.pth.pth")
+    if save:
+        torch.save(agent.Q_eval.state_dict(), save_path)
 
 #All functions use (Days, Step_Period(60 = 1 min), Show graph)
 if __name__ == "__main__":
     start_time = time.time()
+
+    #file = open('2008till2022-10-15.json')
+    file = open('2021till2022nov.json')
+
+    data = json.load(file)
+    
+    save = False
+    load = True
+    save_path = "Q_Eval_Days4k_Info3h_Step10min2.pth"
+    load_path = "Q_Eval_Days4k_Info3h_Step10min2.pth"
+
     days = 670
-    step = 60*10
+    step = 60*60
     print("\n-----------------------------------------------------------------------------------------------\n")
-    if_step_sell(days, step, False)
+    if_step_sell(days, step, False, data)
     print("\n-----------------------------------------------------------------------------------------------\n")
-    only_sell(days, step, False)
+    only_sell(days, step, False, data)
     print("\n-----------------------------------------------------------------------------------------------\n")
-    only_buy(days, step, False)
+    only_buy(days, step, False, data)
     print("\n-----------------------------------------------------------------------------------------------\n")
-    test_rewards(days, step, False)
+    test_rewards(days, step, False, data)
     print("\n-----------------------------------------------------------------------------------------------\n")
-    deep_q_agent(days, step, False)
+    deep_q_agent(days, step, False, data, save=save, save_path=save_path, load=load, load_path=load_path)
     print("\n-----------------------------------------------------------------------------------------------\n")
     print("Finished after: " + (str(np.round((time.time() - start_time),3))) + " seconds")
     
