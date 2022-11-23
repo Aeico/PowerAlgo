@@ -94,10 +94,10 @@ class Home_Enviroment():
         #if day is between 22-08 solar power is 1watt
         if not self.options['forced_solar']:
             if self.time >= (79200 + 86400*(self.day_index-1)) or self.time <= (28800 + 86400*(self.day_index-1)): 
-                self.solar_effect = 5
+                self.solar_effect = 1
                 self.solar_charge_rate_temp = self.watt_to_ampere(self.solar_effect)
             else:
-                self.solar_effect = 1
+                self.solar_effect = 5
                 self.solar_charge_rate_temp = self.watt_to_ampere(self.solar_effect)
 
         if self.time >= 86400*(self.day_index+1): #If day is over needs to go to next day and save information
@@ -150,10 +150,10 @@ class Home_Enviroment():
         if not self.options['forced_solar']:
             #if day is between 22-08 in one hour change power
             if self.time+self.step_period >= (79200 + 86400*(self.day_index-1)) or self.time+self.step_period <= (28800 + 86400*(self.day_index-1)): 
-                self.solar_effect = 10
+                self.solar_effect = 1
                 self.solar_charge_rate_temp = self.watt_to_ampere(self.solar_effect)
             else:
-                self.solar_effect = 50
+                self.solar_effect = 5
                 self.solar_charge_rate_temp = self.watt_to_ampere(self.solar_effect)
         
         self.time = self.step_period + self.time
