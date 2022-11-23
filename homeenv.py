@@ -4,9 +4,6 @@ import re
 import numpy as np
 import torch
 
-#file = open('2008till2022-10-15.json')
-file = open('2021till2022nov.json')
-data = json.load(file)
 
 
 kilohour_to_sec = 1/60/60/1000
@@ -20,7 +17,7 @@ class Home_Enviroment():
         self.day_index = 0 #Day index for giving rewards
         self.home_charge = 0 #Home charge in AmpereHours
         self.solar_effect = 10 #Current Solar Effect in Watt
-        self.load = 2 #Watt Load from house usage
+        self.load = 1 #Watt Load from house usage
         self.total_sold_price = 0
         self.total_bought_price = 0
         self.max_charge = 25200*0.95 #max charge in Ampere Seconds
@@ -93,7 +90,7 @@ class Home_Enviroment():
 
         #if day is between 22-08 solar power is 1watt
         if not self.options['forced_solar']:
-            if self.time >= (79200 + 86400*(self.day_index-1)) or self.time <= (28800 + 86400*(self.day_index-1)): 
+            if self.time >= (79200 + 86400*(self.day_index)) or self.time <= (28800 + 86400*(self.day_index)): 
                 self.solar_effect = 1
                 self.solar_charge_rate_temp = self.watt_to_ampere(self.solar_effect)
             else:
@@ -149,7 +146,7 @@ class Home_Enviroment():
 
         if not self.options['forced_solar']:
             #if day is between 22-08 in one hour change power
-            if self.time+self.step_period >= (79200 + 86400*(self.day_index-1)) or self.time+self.step_period <= (28800 + 86400*(self.day_index-1)): 
+            if self.time+self.step_period >= (79200 + 86400*(self.day_index)) or self.time+self.step_period <= (28800 + 86400*(self.day_index)): 
                 self.solar_effect = 1
                 self.solar_charge_rate_temp = self.watt_to_ampere(self.solar_effect)
             else:
@@ -166,13 +163,14 @@ class Home_Enviroment():
             day_arr.append(self.data[int(i+(self.time/3600))]['Value'])
         for i in range(3):
             state.append(self.data[int(i+(self.time/3600))]['Value'])
-        self.avg_sold_price = np.mean(self.sold_prices[-24*7:]) #Gets average sold price at last 24 sold prices
+        if self.sold_prices != []:
+            self.avg_sold_price = np.mean(self.sold_prices[-24*7:]) #Gets average sold price at last 24 sold prices
         self.avg_price_day = np.mean(day_arr, dtype=np.float32)
         state.append(100/(self.max_charge/(self.home_charge+1)))
         #state.append(self.data[int(self.time/3600)]['Value'])
         #state.append(self.home_charge)
         #state.append(self.max_charge)
-        #state.append(self.solar_effect)
+        state.append(self.solar_effect)
 
         #state.append(self.data[int(self.time/3600)]['Value'])
         #state.append(self.load)
@@ -185,7 +183,7 @@ class Home_Enviroment():
 
     def step(self, choice):
         done = 0
-        dayarr = re.findall(r'\d',data[self.day_index]['TimeStampDay'])
+        dayarr = re.findall(r'\d',self.data[self.day_index]['TimeStampDay'])
         day = int(dayarr[6])*10 + int(dayarr[7])
         initial_date = day
         if day == initial_date:
@@ -193,10 +191,14 @@ class Home_Enviroment():
         if self.time >= 86400*(self.day_index+1): #If going to next day
             done = 1
         
+        if self.day_index > (len(self.data)/24) - 2: #Returns if the max day is reached which as of current is day length -1 (0 is included)
+            return 0, 0, 0
+        
         state = []
         day_arr = []
-        #print(self.day_index)
-        #print(self.data[int((self.time/3600))]['TimeStamp'])
+        #if (self.day_index > 674):
+        #    print(self.day_index+1)
+        #    print(self.data[int(23+(self.time/3600))]['TimeStamp'])
         for i in range(24):
             day_arr.append(self.data[int(i+(self.time/3600))]['Value'])
         for i in range(3):
@@ -208,6 +210,7 @@ class Home_Enviroment():
 
         self.avg_price_day = np.mean(day_arr, dtype=np.float32) #Gets average price of next 24 
         state.append(self.home_charge/3600)
+        state.append(self.solar_effect)#Remove if model2
 
         #If Sold
         if self.bought_at_price == 0:
@@ -236,6 +239,10 @@ class Home_Enviroment():
         return state, reward, done
 
 if __name__ == "__main__":
+    #file = open('2008till2022-10-15.json')
+    file = open('2021till2022nov.json')
+    data = json.load(file)
+
     print(type(data))
     print(data[0])
     print(data[0]['TimeStampHour'])

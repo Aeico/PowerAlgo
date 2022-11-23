@@ -57,9 +57,11 @@ def plot_env_score(x, score, filename, should_show, lines=None):
 
     arr_mean_price = []
     temp = []
-    for i in range(len(x)):
+    for i in range(len(x)): #Average price of electricity
         for j in range(24):
             temp.append(data[j*(i+1)]['Value'])
+        if(temp[0])== 0:
+            arr_mean_price.append(0)
         arr_mean_price.append(np.mean(temp))
         temp = []
     
@@ -252,7 +254,7 @@ class Agent():
 def deep_q_agent(days, step_period, show, data, save, save_path, load, load_path):
     env = Home_Enviroment(step_period,data)
     agent = Agent(gamma=0.99, epsilon=0.01, batch_size=32, n_actions=2, 
-                eps_end=0.001, eps_dec=5e-6, input_dims=[4], lr=0.001,
+                eps_end=0.001, eps_dec=5e-6, input_dims=[5], lr=0.001,
                 load_path=load_path, load=load)
     scores, eps_history = [],[]
     action_count = [0,0,0]
@@ -269,7 +271,7 @@ def deep_q_agent(days, step_period, show, data, save, save_path, load, load_path
             action_count[action] += 1
             #print(str(observation[0]) + ' ' + str(action))
             agent.store_transition(observation, action, reward, observation_, done)
-            agent.learn()
+            #agent.learn()
             observation = observation_
         scores.append(score)
         eps_history.append(agent.epsilon)
@@ -288,7 +290,7 @@ def deep_q_agent(days, step_period, show, data, save, save_path, load, load_path
     
     mean_scores = []
     for i in range (len(scores)):
-        mean_scores.append(np.mean(scores[-5:i]))
+        mean_scores.append(np.mean(scores[(-5*i):]))
 
     plot_env(x,env.charge_at_time,(env.exchange),filename,should_show=show)
     plot_env_score(x, scores, 'agent_score.png',should_show=show)
@@ -302,18 +304,29 @@ def deep_q_agent(days, step_period, show, data, save, save_path, load, load_path
 if __name__ == "__main__":
     start_time = time.time()
 
-    #file = open('2008till2022-10-15.json')
-    file = open('2021till2022nov.json')
+    train = False #Train if true or Test if false
+    override = False #If want custom data / days
+
+    if train:
+        file = open('2008till2022-10-15.json')
+        days = 4000
+    elif not train:
+        file = open('2021till2022nov.json')
+        days = 674
+    if override:# Custom stuff here
+        days = 5
 
     data = json.load(file)
-    
-    save = False
-    load = True
-    save_path = "Q_Eval_Days4k_Info3h_Step10min2.pth"
-    load_path = "Q_Eval_Days4k_Info3h_Step10min2.pth"
 
-    days = 670
+    save = False
+    load = False
+    save_path = "Q_Eval_Days4k_Info3h_Step10min3.pth"
+    load_path = "Q_Eval_Days4k_Info3h_Step10min3.pth"
+
     step = 60*60
+
+    print("\n-----------------------------------------------------------------------------------------------\n")
+    print(f'Days in data: {int((len(data)/24) -1)}')#Prints amount of days in data given
     print("\n-----------------------------------------------------------------------------------------------\n")
     if_step_sell(days, step, False, data)
     print("\n-----------------------------------------------------------------------------------------------\n")
