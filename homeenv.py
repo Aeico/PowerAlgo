@@ -1,16 +1,15 @@
-#Home Enviroment
+#Home Environment
 import json
 import re
 import numpy as np
 import torch
 
 
-
 kilohour_to_sec = 1/60/60/1000
 hour_to_sec = 1/60/60
 
 
-class Home_Enviroment():
+class Home_Environment():
 
     def __init__(self, step_period, data):
         self.data = data
@@ -105,7 +104,7 @@ class Home_Enviroment():
             self.exchange.append((self.total_sold_price-self.total_bought_price)/100)
             self.sold_in_day = 0
             self.bought_in_day = 0
-            #self.run_timeframe(choice) #Made Enviroment Rerun day
+            #self.run_timeframe(choice) #Made Environment Rerun day
             #print(f"Time: {self.time} | Sold for: {self.total_sold_price/100} | Bought for: {self.total_bought_price/100} | Day count: {self.day_index} ")
             #return #Made day quit
 

@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from torch import nn
 import homeenv
 
-Home_Enviroment = homeenv.Home_Enviroment
+Home_Environment = homeenv.Home_Environment
 
 
 import json
@@ -81,9 +81,9 @@ def plot_env_score(x, score, filename, should_show, lines=None):
         plt.show()
 
 def if_step_sell(days, step_period, show, data):
-    #Home Enviroment
+    #Home Environment
 
-    env = Home_Enviroment(step_period,data)
+    env = Home_Environment(step_period,data)
     counts = [0,0,0]
     state = env.init()
     while env.day_index <= days:#((len(data)/24)):
@@ -100,7 +100,7 @@ def if_step_sell(days, step_period, show, data):
     plot_env(x,env.charge_at_time,(env.exchange),filename,should_show=show)
 
 def only_sell(days, step_period, show, data):
-    env = Home_Enviroment(step_period,data)
+    env = Home_Environment(step_period,data)
     counts = [0,0,0]
     while env.day_index <= days:#((len(data)/24)):
         state, reward, done = env.step(0)
@@ -112,7 +112,7 @@ def only_sell(days, step_period, show, data):
     plot_env(x,env.charge_at_time,(env.exchange),filename,should_show=show)
 
 def only_buy(days, step_period, show, data):
-    env = Home_Enviroment(step_period,data)
+    env = Home_Environment(step_period,data)
     counts = [0,0,0]
     days = days
     while env.day_index <= days:#((len(data)/24)):
@@ -124,7 +124,7 @@ def only_buy(days, step_period, show, data):
     plot_env(x,env.charge_at_time,(env.exchange),filename,should_show=show)
 
 def test_rewards(days, step_period, show, data):
-    env = Home_Enviroment(step_period,data)
+    env = Home_Environment(step_period,data)
     counts = [0,0,0]
     days = days
     while env.day_index <= days:#((len(data)/24)):
@@ -151,7 +151,7 @@ class DeepQNetwork(nn.Module):
         self.fc1_dims = fc1_dims #First fully connected layer
         self.fc2_dims = fc2_dims #Second fully connected layer
         self.fc3_dims = fc3_dims #Third fully connected layer
-        self.n_actions = n_actions #How many options for the enviroment (House electricity choices)
+        self.n_actions = n_actions #How many options for the Environment (House electricity choices)
 
         self.fc1 = nn.Linear(*self.input_dims, self.fc1_dims) #Linear layers
         self.fc2 = nn.Linear(self.fc1_dims, self.fc2_dims)
@@ -211,11 +211,11 @@ class Agent():
         self.mem_cntr += 1
 
     def choose_action(self, observation):
-        if np.random.random() > self.epsilon:
+        if np.random.random() > self.epsilon: #Greedy choice
             state = torch.tensor([observation]).to(self.Q_eval.device)
             actions = self.Q_eval.forward(state)
             action = torch.argmax(actions).item()
-        else: 
+        else: #Random (Exploration) choice
             action = np.random.choice(self.action_space)
         
         return action
@@ -252,7 +252,7 @@ class Agent():
                                                     else self.eps_min                                
 
 def deep_q_agent(days, step_period, show, data, save, save_path, load, load_path):
-    env = Home_Enviroment(step_period,data)
+    env = Home_Environment(step_period,data)
     agent = Agent(gamma=0.99, epsilon=0.01, batch_size=32, n_actions=2, 
                 eps_end=0.001, eps_dec=5e-6, input_dims=[5], lr=0.001,
                 load_path=load_path, load=load)
@@ -271,7 +271,7 @@ def deep_q_agent(days, step_period, show, data, save, save_path, load, load_path
             action_count[action] += 1
             #print(str(observation[0]) + ' ' + str(action))
             agent.store_transition(observation, action, reward, observation_, done)
-            #agent.learn()
+            agent.learn()
             observation = observation_
         scores.append(score)
         eps_history.append(agent.epsilon)
@@ -319,11 +319,11 @@ if __name__ == "__main__":
     data = json.load(file)
 
     save = False
-    load = False
+    load = True
     save_path = "Q_Eval_Days4k_Info3h_Step10min3.pth"
     load_path = "Q_Eval_Days4k_Info3h_Step10min3.pth"
 
-    step = 60*60
+    step = 60*10
 
     print("\n-----------------------------------------------------------------------------------------------\n")
     print(f'Days in data: {int((len(data)/24) -1)}')#Prints amount of days in data given
