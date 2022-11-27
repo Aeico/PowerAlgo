@@ -3,7 +3,7 @@ import homeenv
 import numpy as np
 import time
 
-Home_Enviroment = homeenv.Home_Enviroment
+Home_Environment = homeenv.Home_Environment
 
 #{'TimeStamp': '2008-01-01T00:00:00', 
 # 'TimeStampDay': '2008-01-01', 
@@ -49,7 +49,7 @@ class TestHomeEnv(unittest.TestCase):
                 step = 60 #Test minute tick
             elif i == 3:
                 step = 10 #Test 10 second tick
-            env = Home_Enviroment(step,data) #one hour per tick test
+            env = Home_Environment(step,data) #one hour per tick test
             env.solar_effect = 175 # 175 watt
             env.home_discharge_rate_temp = 0
             env.set_option("forced_solar", 1)
@@ -90,7 +90,7 @@ class TestHomeEnv(unittest.TestCase):
                 step = 3 #Test 3 sec tick
             elif i == 3:
                 step = 4 #Test 10 second tick
-            env = Home_Enviroment(step,data) #one hour per tick
+            env = Home_Environment(step,data) #one hour per tick
             env.solar_effect = 120 # 175 watt
             env.solar_charge_rate_temp = 120/12
             env.home_charge = 0
@@ -135,7 +135,7 @@ class TestHomeEnv(unittest.TestCase):
                 step = 1 #Test minute tick
             elif i == 3:
                 step = 10 #Test 10 second tick
-            env = Home_Enviroment(step,data) #sets tick and resets enviroment
+            env = Home_Environment(step,data) #sets tick and resets enviroment
             env.solar_effect = 120 # 175 watt
             env.solar_charge_rate_temp = 120/12
             env.home_charge = 0

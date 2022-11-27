@@ -155,7 +155,7 @@ class Home_Environment():
         self.time = self.step_period + self.time
         self.last_sold_from_battery += self.step_period
         
-    def init(self):
+    def day_init(self):
         state = []
         day_arr = []
         for i in range(24):
