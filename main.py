@@ -11,7 +11,6 @@ Home_Environment = homeenv.Home_Environment
 import json
 import time
 
-
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as pe
 
@@ -154,9 +153,9 @@ class DeepQNetwork(nn.Module):
         super(DeepQNetwork, self).__init__()
         
         self.input_dims = input_dims
-        self.fc1_dims = fc1_dims #First fully connected layer
-        self.fc2_dims = fc2_dims #Second fully connected layer
-        self.fc3_dims = fc3_dims #Third fully connected layer
+        self.fc1_dims = fc1_dims #First fully connected layer dimensions
+        self.fc2_dims = fc2_dims #Second fully connected layer dimensions
+        self.fc3_dims = fc3_dims #Third fully connected layer dimensions
         self.n_actions = n_actions #How many options for the Environment (House electricity choices)
 
         self.fc1 = nn.Linear(*self.input_dims, self.fc1_dims) #Linear layers
@@ -188,10 +187,10 @@ class Agent():
         self.eps_min = eps_end #ending numer of increased learning rate
         self.eps_dec = eps_dec #decrement of increased learning rate
         self.lr = lr #learning rate
-        self.input_dims = input_dims
-        self.batch_size = batch_size
-        self.action_space = [i for i in range(n_actions)]
-        self.mem_size = max_mem_size
+        self.input_dims = input_dims #Amount of states from enviroment
+        self.batch_size = batch_size #How much data to process in replay memory
+        self.action_space = [i for i in range(n_actions)] #Amount of choices
+        self.mem_size = max_mem_size 
         self.mem_cntr = 0
         self.Q_eval = DeepQNetwork(self.lr, n_actions=n_actions, input_dims=input_dims, fc1_dims=64, fc2_dims=64, fc3_dims=32)
 
@@ -273,8 +272,10 @@ def deep_q_agent(days, step_period, show, data, save, save_path, load, load_path
         done = False
         observation = env.day_init()
         while not done:
-            action = agent.choose_action(observation)
-            observation_, reward, done = env.step(action)
+            action = agent.choose_action(observation) #Calculate action or if greedy set it to random
+            #CHANGE HERE FOR REALTIME
+            observation_, reward, done = env.step(action) #Step forward (If realtime needs to be different)
+
             score += reward
             action_count[action] += 1
             agent.store_transition(observation, action, reward, observation_, done)
@@ -284,17 +285,17 @@ def deep_q_agent(days, step_period, show, data, save, save_path, load, load_path
         eps_history.append(agent.epsilon)
 
         avg_score = np.mean(scores[-100:])
-        #if i % 200 == 0:
-        #    ampere_hour = env.home_charge/3600
-        #    print(f"{np.round(env.total_sold_price/100,3)}SEK Sold and {np.round(env.total_bought_price/100,3)}SEK Bought  |  Delta = {np.round(env.total_sold_price/100 - env.total_bought_price/100,3)}kr | Charge at {np.round(ampere_hour,3)}Ah | Reward was: {np.round(reward,3)}")
-        #    print('day', i, 'score %.3f' % score,'average score %.3f' % avg_score,'epsilon %.3f' % agent.epsilon)
+        if i % 100 == 0:
+            ampere_hour = env.home_charge/3600
+            print(f"{np.round(env.total_sold_price/100,3)}SEK Sold and {np.round(env.total_bought_price/100,3)}SEK Bought  |  Delta = {np.round(env.total_sold_price/100 - env.total_bought_price/100,3)}kr | Charge at {np.round(ampere_hour,3)}Ah | Reward was: {np.round(reward,3)}")
+            print('day', i, 'score %.3f' % score,'average score %.3f' % avg_score,'epsilon %.3f' % agent.epsilon)
     ampere_hour = env.home_charge/3600
     print(f"{np.round(env.total_sold_price/100,3)}SEK Sold and {np.round(env.total_bought_price/100,3)}SEK Bought  |  Delta = {np.round(env.total_sold_price/100 - env.total_bought_price/100,3)}kr | Charge at {np.round(ampere_hour,3)}Ah")
     x = [i for i in range(days)]    
     filename = 'agent_performance.png'
     env.charge_at_time.append(env.home_charge/3600)
     env.exchange.append((env.total_sold_price-env.total_bought_price)/100)
-    
+
     mean_scores = []
     for i in range (len(scores)):
         mean_scores.append(np.mean(scores[(-5*i):]))
@@ -328,9 +329,9 @@ if __name__ == "__main__":
     data = json.load(file)
 
     save = False
-    load = False
-    save_path = "Q_Eval_Days4k_Info3h_Step10min4.pth"
-    load_path = "Q_Eval_Days4k_Info3h_Step10min4.pth"
+    load = True
+    save_path = "Q_Eval_Days4k_Info3h_Step10min6.pth"
+    load_path = "Q_Eval_Days4k_Info3h_Step10min6.pth"
 
     step = 60*60
 
@@ -339,21 +340,21 @@ if __name__ == "__main__":
 
     print("\n-----------------------------------------------------------------------------------------------\n")
     print(f'Days in data: {int((len(data)/24) -1)}')#Prints amount of days in data given
-    #print("\n-----------------------------------------------------------------------------------------------\nIf Price > 0.40:")
-    #run = if_step_sell(days, step, False, data)
-    #profit.append(run)
-    #print("\n-----------------------------------------------------------------------------------------------\nOnly sell:")
-    #run = only_sell(days, step, False, data)
-    #profit.append(run)
-    #print("\n-----------------------------------------------------------------------------------------------\nOnly buy:")
-    #run = only_buy(days, step, False, data)
-    #profit.append(run)
-    #print("\n-----------------------------------------------------------------------------------------------\nDepending on current price compared to price in 1 and 2 hours")
-    #run = test_rewards(days, step, False, data)
-    #profit.append(run)
-    #print("\n-----------------------------------------------------------------------------------------------\nDQN with Adam Optimzer and Experience Replay, Training not loaded")
-    #run = deep_q_agent(days, step, False, data, save=False, save_path=save_path, load=False, load_path=load_path)
-    #profit.append(run)
+    print("\n-----------------------------------------------------------------------------------------------\nIf Price > 0.40:")
+    run = if_step_sell(days, step, False, data)
+    profit.append(run)
+    print("\n-----------------------------------------------------------------------------------------------\nOnly sell:")
+    run = only_sell(days, step, False, data)
+    profit.append(run)
+    print("\n-----------------------------------------------------------------------------------------------\nOnly buy:")
+    run = only_buy(days, step, False, data)
+    profit.append(run)
+    print("\n-----------------------------------------------------------------------------------------------\nDepending on current price compared to price in 1 and 2 hours")
+    run = test_rewards(days, step, False, data)
+    profit.append(run)
+    print("\n-----------------------------------------------------------------------------------------------\nDQN with Adam Optimzer and Experience Replay, Training not loaded")
+    run = deep_q_agent(days, step, False, data, save=False, save_path=save_path, load=False, load_path=load_path)
+    profit.append(run)
     print("\n-----------------------------------------------------------------------------------------------\nDQN with Adam Optimzer and Experience Replay, Training Loaded")
     run = deep_q_agent(days, step, False, data, save=save, save_path=save_path, load=load, load_path=load_path)
     profit.append(run)
@@ -363,9 +364,6 @@ if __name__ == "__main__":
 
     fig, ax = plt.subplots()
     
-    #bar_labels = ['red', 'blue', '_red', 'orange']
-    #bar_colors = ['tab:red', 'tab:blue', 'tab:red', 'tab:orange']
-
     ax.bar(model, profit )#label=bar_labels, color=bar_colors)
 
     ax.set_ylabel('Profit SEK')
