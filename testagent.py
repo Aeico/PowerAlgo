@@ -36,11 +36,6 @@ def run_agent(return_result_arr):
     for i in range(times):
         run = main.deep_q_agent(days, step, False, data, save=save, save_path=save_path, load=load, load_path=load_path)
         return_result_arr.append(run)
-
-def test_thread(list):
-
-    for i in range(10):
-        list.append(str(i))
     
 if __name__ == "__main__":
 
