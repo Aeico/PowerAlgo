@@ -43,7 +43,7 @@ def plot_env(x, charge, exchange, filename, should_show, lines=None):
     if(should_show == True):
         plt.show()
 
-def plot_env_score(x, score, filename, should_show, lines=None):
+def plot_env_score(x, data, score, filename, should_show, lines=None):
     
     fig=plt.figure(figsize=(6*2.5, 3*2.5), dpi=200)
 
@@ -131,17 +131,28 @@ def test_rewards(days, step_period, show, data):
     counts = [0,0,0]
     days = days
     while env.day_index <= days:#((len(data)/24)):
-        first_diff = (env.data[0+int((env.time/3600))]['Value']) - (env.data[1+int((env.time/3600))]['Value']) 
 
-        second_diff = (env.data[1+int((env.time/3600))]['Value']) - (env.data[2+int((env.time/3600))]['Value'])
+        tot_diff = 0
+        for i in range(4):
+            new_diff = (env.data[int(i+(env.time/3600))]['Value'] \
+                - env.data[int(i+1+(env.time/3600))]['Value'])
+            new_diff = new_diff/(1+(i/10))
+            tot_diff += new_diff
 
-        if first_diff + second_diff > -10 or env.home_charge + env.home_discharge_rate_temp*env.step_period + env.solar_charge_rate_temp*env.step_period >= env.max_charge:
+        if tot_diff > 2.2 \
+                or env.home_charge + env.home_discharge_rate_temp*env.step_period + env.solar_charge_rate_temp*env.step_period >= env.max_charge:
             state, reward, done = env.step(0)
         else: 
             state, reward, done = env.step(1)
+        
+        if (env.day_index % 100 == 0 and env.time/3600 % 1200 == 1):
+            print(f"Day: {env.day_index}")
+            ampere_hour = env.home_charge/3600
+            print(f"{np.round(env.total_sold_price/100,3)}SEK Sold and {np.round(env.total_bought_price/100,3)}SEK Bought  |  Delta = {np.round(env.total_sold_price/100 - env.total_bought_price/100,3)}kr | Charge at {np.round(ampere_hour,3)}Ah | Reward was: {np.round(reward,3)}")
     ampere_hour = env.home_charge/3600
     print(f"{np.round(env.total_sold_price/100,3)}SEK Sold and {np.round(env.total_bought_price/100,3)}SEK Bought  |  Delta = {np.round(env.total_sold_price/100 - env.total_bought_price/100,3)}kr | Charge at {np.round(ampere_hour,3)}Ah")
     x = [i+1 for i in range(days+1)]
+    
     filename = 'reward_test.png'
     plot_env(x,env.charge_at_time,(env.exchange),filename,should_show=show)
 
@@ -262,7 +273,7 @@ class Agent():
 def deep_q_agent(days, step_period, show, data, save, save_path, load, load_path):
     env = Home_Environment(step_period,data)
     agent = Agent(gamma=0.99, epsilon=0.01, batch_size=32, n_actions=2, 
-                eps_end=0.001, eps_dec=5e-6, input_dims=[5], lr=0.001,
+                eps_end=0.0001, eps_dec=5e-7, input_dims=[7], lr=0.0001,
                 load_path=load_path, load=load)
     scores, eps_history = [],[]
     action_count = [0,0,0]
@@ -300,8 +311,8 @@ def deep_q_agent(days, step_period, show, data, save, save_path, load, load_path
     for i in range (len(scores)):
         mean_scores.append(np.mean(scores[(-5*i):]))
 
-    plot_env(x,env.charge_at_time,(env.exchange),filename,should_show=show)
-    plot_env_score(x, scores, 'agent_score.png',should_show=show)
+    #plot_env(x,env.charge_at_time,(env.exchange),filename,should_show=show)
+    #plot_env_score(x, data, scores, 'agent_score.png',should_show=show)
 
     print(action_count)
     
@@ -324,14 +335,15 @@ if __name__ == "__main__":
         file = open('2021till2022nov.json')
         days = 674
     if override:# Custom stuff here
-        days = 5
+        file = open('virtualdata.json')
+        days = 50000
 
     data = json.load(file)
 
     save = False
     load = True
-    save_path = "Q_Eval_Days4k_Info3h_Step10min6.pth"
-    load_path = "Q_Eval_Days4k_Info3h_Step10min6.pth"
+    save_path = "Q_EvalTest_FromOld.pth"
+    load_path = "Q_EvalTest_FromOld.pth"
 
     step = 60*60
 

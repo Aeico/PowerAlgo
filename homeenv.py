@@ -24,13 +24,13 @@ class Home_Environment():
         self.charge_at_time = []
         self.sold_in_day = 0
         self.bought_in_day = 0
-        self.average_price_day = 0
         self.sold_prices = []
         self.last_sold_from_battery = 0
         self.bought_at_price = 0
         self.sold_at_price = 0
         self.amount_sold = 0
         self.amount_gained = 0
+        self.amount_cost = 0
         self.full_charged = 0
 
         #Temporary charge and discharge rates until we do better calculations
@@ -75,6 +75,7 @@ class Home_Environment():
         cost = self.step_period*(watt_to_buy*kilohour_to_sec)*self.data[int(self.time/3600)]['Value'] #DeltaTime * Kwh * KwhToSec * Price
         self.total_bought_price += cost
         self.bought_in_day += cost
+        self.amount_cost += cost
 
     def watt_to_ampere(self, target):
         target = target*0.0833333
@@ -110,6 +111,7 @@ class Home_Environment():
 
         self.amount_sold = 0
         self.amount_gained = 0
+        self.amount_cost = 0
 
         if choice == 0:#Home -> Away AND Solar -> Away (SELL)
             #If can sell charge sell it
@@ -160,20 +162,27 @@ class Home_Environment():
         day_arr = []
         for i in range(24):
             day_arr.append(self.data[int(i+(self.time/3600))]['Value'])
-        for i in range(3):
-            state.append(self.data[int(i+(self.time/3600))]['Value'])
+        for i in range(4):
+            state.append((day_arr[i] - day_arr[i+1]))
+            #state.append(self.data[int(i+(self.time/3600))]['Value'])
         if self.sold_prices != []:
             self.avg_sold_price = np.mean(self.sold_prices[-24*7:]) #Gets average sold price at last 24 sold prices
         self.avg_price_day = np.mean(day_arr, dtype=np.float32)
-        state.append(100/(self.max_charge/(self.home_charge+1)))
+        
         #state.append(self.data[int(self.time/3600)]['Value'])
         #state.append(self.home_charge)
         #state.append(self.max_charge)
+
+        #The working appended states (Percent of charge and solar effect)
+        state.append(self.home_charge/3600)
         state.append(self.solar_effect)
+        
+
+        #Additional?
+        state.append(self.load)
 
         #state.append(self.data[int(self.time/3600)]['Value'])
         #state.append(self.load)
-        #state.append(self.average_price_day)
         #state.append(self.solar_charge_rate_temp)
         #state.append(0.0)
         #state.append(self.max_charge)
@@ -200,8 +209,9 @@ class Home_Environment():
         #    print(self.data[int(23+(self.time/3600))]['TimeStamp'])
         for i in range(24):
             day_arr.append(self.data[int(i+(self.time/3600))]['Value'])
-        for i in range(3):
-            state.append(self.data[int(i+(self.time/3600))]['Value'])
+        for i in range(4):
+            state.append((day_arr[i] - day_arr[i+1]))
+            #state.append(self.data[int(i+(self.time/3600))]['Value'])
         #if len(self.sold_prices) > 0:
         #    self.avg_sold_price = np.mean(self.sold_prices[-24*7:]) #Gets average sold price at last 24 sold prices
         #else:
@@ -210,29 +220,24 @@ class Home_Environment():
         self.avg_price_day = np.mean(day_arr, dtype=np.float32) #Gets average price of next 24 
         state.append(self.home_charge/3600)
         state.append(self.solar_effect)#Remove if model2
+        state.append(self.load)
 
+        tot_diff = 0;
+        for i in range(4):
+            new_diff = (day_arr[i] - day_arr[i+1])
+            new_diff = new_diff/(1+(i/10))
+            tot_diff += new_diff
+        
+        #(day_arr[0] - day_arr[1])*1 + (day_arr[1] - day_arr[2])*1
         #If Sold
         if self.bought_at_price == 0:
-            #reward = ((self.sold_at_price/(self.avg_price_day+0.01))-1) #Sold at price compared to average price
-            reward = (day_arr[0] - day_arr[1])*2 + (day_arr[1] - day_arr[2])*1
+            reward = tot_diff*1
         else: #If Bought
-            #reward = ((self.avg_price_day/self.bought_at_price)-1) #Ignored price comparde to average price
-            reward = (-day_arr[0] + day_arr[1])*2 + (-day_arr[1] + day_arr[2])*1
-        reward = reward*(self.step_period/3600)
-        reward += (self.sold_in_day - self.bought_in_day)*0.4*(self.step_period/3600)*15
-        
-        
+            reward = -tot_diff*1
+        #reward = reward*(self.step_period/3600)
+        #reward += (self.sold_at_price - self.bought_at_price)*(self.step_period/3600)*15
+        reward += (self.amount_gained - self.amount_cost)*30
 
-        #reward = self.total_sold_price - self.total_bought_price
-
-        #reward += (self.full_charged)*-reward
-
-        #optimal_solar_sell = (self.step_period*(self.solar_effect*kilohour_to_sec)*self.data[int(self.time/3600)]['Value'])
-        #reward = (self.amount_gained - optimal_solar_sell)*10
-        #reward += self.home_charge/(3600*3)
-        #reward += self.full_charged*-50
-        #reward = self.sold_in_day - self.bought_in_day
-        #print(reward)
 
         
         return state, reward, done
