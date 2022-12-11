@@ -24,7 +24,7 @@ def run_agent(return_result_arr):
     data = json.load(file)
 
     save = False
-    load = True
+    load = False
     save_path = "Q_EvalTest_FromOld.pth"
     load_path = "Q_EvalTest_FromOld.pth"
 
@@ -32,7 +32,7 @@ def run_agent(return_result_arr):
 
     #return np.round(env.total_sold_price/100 - env.total_bought_price/100,3)
     #it retuns profit
-    times = 10
+    times = 1
     for i in range(times):
         run = main.deep_q_agent(days, step, False, data, save=save, save_path=save_path, load=load, load_path=load_path)
         return_result_arr.append(run)
@@ -45,7 +45,7 @@ if __name__ == "__main__":
     #it retuns profit
     
     
-    amount = 50
+    amount = 25
     results = []
     run_test = False
     if run_test:
@@ -61,7 +61,7 @@ if __name__ == "__main__":
         print(results)
 
         result_json = json.dumps(results)
-        with open('mutliple_runs_result_50runs.json', 'w') as outfile:
+        with open('mutliple_runs_result_25runs_untrained.json', 'w') as outfile:
             outfile.write(result_json)
 
     else:#Not running, meaning loading tests
@@ -69,13 +69,26 @@ if __name__ == "__main__":
             result_json = outfile.read()
         results = json.loads(result_json)
 
+        mean = np.mean(results)
+        max = np.max(results)
+        min = np.min(results)
+        print("\n-----------------------------------------------------------------------------------------------\n")
+        print("Trained:")
+        print(f"Mean: {mean}, Max: {max}, Min: {min}")
 
-    print(results)
 
-    mean = np.mean(results)
-    max = np.max(results)
-    min = np.min(results)
-    print("\n-----------------------------------------------------------------------------------------------\n")
-    print(f"Mean: {mean}, Max: {max}, Min: {min}")
+        with open('mutliple_runs_result_25runs_untrained.json', 'r') as outfile:
+            result_json = outfile.read()
+        results = json.loads(result_json)
+
+        mean = np.mean(results)
+        max = np.max(results)
+        min = np.min(results)
+        print("\n-----------------------------------------------------------------------------------------------\n")
+        print("Untrained:")
+        print(f"Mean: {mean}, Max: {max}, Min: {min}")
+
+    #print(results)
+
     print("\n-----------------------------------------------------------------------------------------------\n")
     print("Finished after: " + (str(np.round((time.time() - start_time),3))) + " seconds")
